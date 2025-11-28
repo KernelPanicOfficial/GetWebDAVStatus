@@ -1,29 +1,46 @@
-#GetWebDAVStatus
-#CNA author @nickvourd
+# GetWebDAVStatus.cna
+# CNA author @nickvourd
 
-beacon_command_register("GetWebDAVStatus", "Determine if the WebClient Service (WebDAV) is running on a remote system.", "Synopsis: GetWebDAVStatus <target server ip or hostname>\n\n");
+beacon_command_register(
+    "GetWebDAVStatus",
+    "Determine if the WebClient Service (WebDAV) is running on a remote system",
+    "Synopsis: GetWebDAVStatus <target server ip or hostname>\n\n" .
+    "Usage: GetWebDAVStatus <target>\n\n" .
+    "Arguments:\n" .
+    "  target  IP address or hostname of the remote system\n\n" .
+    "Examples:\n" .
+    "  GetWebDAVStatus 192.168.1.100\n" .
+    "  GetWebDAVStatus dc01.domain.local",
+    "bof"
+);
 
 alias GetWebDAVStatus {
-    $bid = $1;
+    local('$bid $input @args $target $handle $data $arg_data');
 
+    $bid = $1;
     $input = substr($0, 16);
     @args = split(' ', $input);
-
     $target = @args[0];
 
     if ($target eq "") {
-	    berror($bid, "Specify an ip or hostname");
-	    return;
+        berror($bid, "Specify an ip or hostname");
+        berror($bid, "Usage: GetWebDAVStatus <target>");
+        return;
     }
 
     # Read in the right BOF file
     $handle = openf(script_resource("GetWebDAVStatus." . barch($bid) . ".o"));
-    $data   = readb($handle, -1);
+    $data = readb($handle, -1);
     closef($handle);
 
-    # Pack our arguments
-    $arg_data  = bof_pack($bid, "Z", $target);
-    btask($bid, "GetWebDAVStatus BOF by @G0ldenGunSec && @nickvourd");
+    if (strlen($data) == 0) {
+        berror($bid, "Could not load BOF file: GetWebDAVStatus." . barch($bid) . ".o");
+        return;
+    }
 
+    # Pack our arguments
+    $arg_data = bof_pack($bid, "Z", $target);
+
+    btask($bid, "GetWebDAVStatus BOF by @G0ldenGunSec && @nickvourd");
     beacon_inline_execute($bid, $data, "go", $arg_data);
 }
