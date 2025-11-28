@@ -4,7 +4,7 @@ Small project to determine if the Web Client service (WebDAV) is running on a re
 ## Usage
 The C# versions take a comma-seperated list of systems to scan.  The C# version also has an optional arg of "--tc" that allows the operator to control the max amount of threads to be used (default: 5). The BOF vesrion take only one argument.
 
-BOF: `GetWebDAVStatus server01`
+BOF: `GetWebDAVStatus server01 dc01 ws01 192.168.1.55 ca.domain.local`
 
 C#: `execute-assembly C:\assemblies\GetWebDAVStatus.exe server01,server02 --tc 1`
 
