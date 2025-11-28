@@ -3,28 +3,32 @@
 
 beacon_command_register(
     "GetWebDAVStatus",
-    "Determine if the WebClient Service (WebDAV) is running on a remote system",
-    "Synopsis: GetWebDAVStatus <target server ip or hostname>\n\n" .
-    "Usage: GetWebDAVStatus <target>\n\n" .
+    "Determine if the WebClient Service (WebDAV) is running on remote systems",
+    "Synopsis: GetWebDAVStatus <target1> [target2] [target3] ...\n\n" .
+    "Usage: GetWebDAVStatus <target> [additional targets...]\n\n" .
+    "Description:\n" .
+    "  Checks if the WebClient service (WebDAV) is running on one or more\n" .
+    "  remote systems by attempting to connect to the DAV RPC SERVICE pipe.\n\n" .
     "Arguments:\n" .
-    "  target  IP address or hostname of the remote system\n\n" .
+    "  target  IP address or hostname of the remote system(s)\n" .
+    "          Multiple targets can be specified separated by spaces\n\n" .
     "Examples:\n" .
     "  GetWebDAVStatus 192.168.1.100\n" .
-    "  GetWebDAVStatus dc01.domain.local",
+    "  GetWebDAVStatus dc01.domain.local\n" .
+    "  GetWebDAVStatus dc01 ws01 srv01\n" .
+    "  GetWebDAVStatus 192.168.1.10 192.168.1.20 192.168.1.30",
     "bof"
 );
 
 alias GetWebDAVStatus {
-    local('$bid $input @args $target $handle $data $arg_data');
+    local('$bid $handle $data $arg_data $i $target $numTargets');
 
     $bid = $1;
-    $input = substr($0, 16);
-    @args = split(' ', $input);
-    $target = @args[0];
 
-    if ($target eq "") {
-        berror($bid, "Specify an ip or hostname");
-        berror($bid, "Usage: GetWebDAVStatus <target>");
+    # Check if we have at least one target
+    if (size(@_) < 2) {
+        berror($bid, "Specify at least one ip or hostname");
+        berror($bid, "Usage: GetWebDAVStatus <target1> [target2] [target3] ...");
         return;
     }
 
@@ -38,9 +42,21 @@ alias GetWebDAVStatus {
         return;
     }
 
-    # Pack our arguments
-    $arg_data = bof_pack($bid, "Z", $target);
+    # Calculate number of targets
+    $numTargets = size(@_) - 1;
+
+    # Pack: first the count (i), then each target as wide string (Z)
+    $arg_data = bof_pack($bid, "i", $numTargets);
+    
+    for ($i = 1; $i < size(@_); $i++) {
+        $target = @_[$i];
+        if ($target ne "") {
+            $arg_data = $arg_data . bof_pack($bid, "Z", $target);
+        }
+    }
 
     btask($bid, "GetWebDAVStatus BOF by @G0ldenGunSec && @nickvourd");
+    btask($bid, "Checking WebDAV status on $numTargets host(s)...");
+    
     beacon_inline_execute($bid, $data, "go", $arg_data);
 }
